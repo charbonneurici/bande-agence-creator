@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BANDE AGENCE CREATOR</title>
+  <!-- ffmpeg.wasm v0.11 — architecture sans worker externe, fonctionne sur GitHub Pages -->
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #09090f;
+      --surface: #111120;
+      --sur2:    #18182a;
+      --border:  #232336;
+      --accent:  #f0a500;
+      --text:    #e6e6f5;
+      --muted:   #55557a;
+      --green:   #22c55e;
+      --red:     #ef4444;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+    body::after { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: .5; }
+
+    header { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px; background: linear-gradient(90deg,#f0a500,#ffcd3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .tagline { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .film-strip { display: flex; gap: 5px; }
+    .film-hole  { width: 9px; height: 13px; border-radius: 2px; background: var(--border); }
+
+    main { max-width: 800px; margin: 0 auto; padding: 36px 20px; display: flex; flex-direction: column; gap: 18px; flex: 1; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .card-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .step-badge { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #000; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; }
+    .card-body  { padding: 18px 20px; }
+
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .preset-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 10px; margin-bottom: 16px; }
+    .preset-item { position: relative; cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); aspect-ratio: 16/9; transition: border-color .2s, transform .15s; }
+    .preset-item:hover  { border-color: var(--muted); transform: translateY(-2px); }
+    .preset-item.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,165,0,.2); }
+    .preset-item img    { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .p-label { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent,rgba(0,0,0,.75)); padding: 12px 6px 5px; font-size: 10px; text-align: center; color: #fff; font-weight: 500; }
+    .p-check { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #000; font-size: 10px; font-weight: 700; display: none; align-items: center; justify-content: center; }
+    .preset-item.active .p-check { display: flex; }
+
+    .or-sep { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--muted); font-size: 11px; }
+    .or-sep::before, .or-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .img-upload-label { display: block; cursor: pointer; border: 2px dashed var(--border); border-radius: 10px; padding: 22px 20px; text-align: center; transition: .2s; }
+    .img-upload-label:hover { border-color: var(--accent); background: rgba(240,165,0,.04); }
+    .img-upload-label.filled { border-style: solid; border-color: var(--accent); display: flex; align-items: center; gap: 14px; padding: 12px 18px; text-align: left; }
+    .upload-icon { font-size: 24px; margin-bottom: 6px; }
+    .upload-text { font-size: 13px; color: var(--muted); }
+    .upload-sub  { font-size: 11px; color: var(--muted); margin-top: 3px; opacity: .7; }
+    .img-thumb-prev { width: 80px; height: 46px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+
+    .active-banner { display: none; align-items: center; gap: 10px; background: rgba(240,165,0,.08); border: 1px solid rgba(240,165,0,.2); border-radius: 8px; padding: 8px 12px; margin-top: 12px; font-size: 12px; color: rgba(240,165,0,.9); }
+    .active-banner.on { display: flex; }
+    .active-banner img { width: 40px; height: 23px; object-fit: cover; border-radius: 4px; }
+
+    #videoList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .empty-hint { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 0; }
+    .video-item { background: var(--sur2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; display: flex; align-items: center; gap: 12px; }
+    .v-thumb { width: 64px; height: 36px; border-radius: 5px; background: #06060f; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .v-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .v-icon { font-size: 18px; opacity: .35; }
+    .v-info { flex: 1; min-width: 0; }
+    .v-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .v-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .v-actions { display: flex; gap: 4px; }
+    .ibtn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: .15s; }
+    .ibtn:hover:not(:disabled) { background: var(--surface); color: var(--text); border-color: var(--muted); }
+    .ibtn:disabled { opacity: .3; cursor: default; }
+    .ibtn.del:hover:not(:disabled) { background: rgba(239,68,68,.12); color: var(--red); border-color: var(--red); }
+
+    .add-video-label { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; padding: 10px; border-radius: 8px; border: 1px dashed var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans'; font-size: 13px; cursor: pointer; transition: .2s; }
+    .add-video-label:hover { border-color: var(--accent); color: var(--accent); background: rgba(240,165,0,.04); }
+
+    .name-row { display: flex; align-items: center; gap: 10px; }
+    .text-in { flex: 1; background: var(--sur2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'DM Sans'; font-size: 14px; }
+    .text-in:focus { outline: none; border-color: var(--accent); }
+    .ext { color: var(--muted); font-family: 'JetBrains Mono'; font-size: 13px; }
+
+    .cta { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(135deg,#f0a500,#ffcd3c); color: #000; font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 3px; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .cta:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(240,165,0,.32); }
+    .cta:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .hidden { display: none; }
+    .steps { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+    .stp { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+    .stp.active { color: var(--text); }
+    .stp.done   { color: var(--green); }
+    .stp-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; }
+    .stp.active .stp-dot { border-color: var(--accent); animation: pls 1s infinite; }
+    .stp.done   .stp-dot { border-color: var(--green); background: rgba(34,197,94,.1); }
+    @keyframes pls { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .pbar-wrap { background: var(--sur2); border-radius: 99px; height: 5px; overflow: hidden; margin-bottom: 14px; }
+    .pbar-fill  { height: 100%; background: linear-gradient(90deg,#f0a500,#ffcd3c); border-radius: 99px; transition: width .4s; width: 0%; }
+    .logbox { background: #04040c; border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono'; font-size: 10.5px; color: #50e878; height: 110px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+
+    .dl-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border-radius: 10px; border: 2px solid var(--green); background: rgba(34,197,94,.07); color: var(--green); font-family: 'DM Sans'; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; transition: .2s; }
+    .dl-btn:hover { background: rgba(34,197,94,.14); }
+
+    .banner { background: rgba(240,165,0,.06); border: 1px solid rgba(240,165,0,.15); border-radius: 10px; padding: 11px 15px; font-size: 12px; color: rgba(240,165,0,.85); line-height: 1.7; }
+
+    #loadOv { display: none; position: fixed; inset: 0; background: rgba(9,9,15,.93); z-index: 200; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    #loadOv.on { display: flex; }
+    .spin { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: rot .75s linear infinite; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    footer { text-align: center; padding: 22px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); font-style: italic; line-height: 1.8; }
+    footer strong { color: rgba(240,165,0,.7); font-style: normal; }
+
+    input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<div id="loadOv">
+  <div class="spin"></div>
+  <div style="font-size:14px">Chargement du moteur vidéo…</div>
+  <div style="font-size:11px;color:var(--muted)">~25 Mo, une seule fois par session</div>
+</div>
+
+<header>
+  <div>
+    <div class="logo">BANDE AGENCE CREATOR</div>
+    <div class="tagline">Assemblage de vidéos — traitement 100 % local, dans votre navigateur</div>
+  </div>
+  <div class="film-strip">
+    <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+    <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+    <div class="film-hole"></div><div class="film-hole"></div>
+  </div>
+</header>
+
+<main>
+
+  <div class="banner">
+    ⚡ Vos vidéos ne quittent jamais votre ordinateur — tout est traité localement via WebAssembly.
+    Compatible Chrome, Edge et Firefox. Recommandé pour moins de 500 Mo au total.
+  </div>
+
+  <!-- ÉTAPE 1 : Image -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">1</div>
+      <div class="card-title">Image de début et de fin</div>
+    </div>
+    <div class="card-body">
+      <div class="section-label">Visuels de l'agence</div>
+      <div class="preset-gallery" id="presetGallery"></div>
+      <div class="or-sep">ou uploader votre propre image</div>
+      <label class="img-upload-label" id="imgLabel" for="imgFileInput">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">Cliquer pour choisir une image</div>
+        <div class="upload-sub">JPG ou PNG — affichée 2 sec au début et à la fin</div>
+      </label>
+      <input type="file" id="imgFileInput" accept="image/*">
+      <div class="active-banner" id="activeBanner">
+        <img id="activeBannerThumb" src="" alt="">
+        <span id="activeBannerLabel"></span>
+        <span style="margin-left:auto;opacity:.5;font-size:10px">sélectionnée ✓</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 : Vidéos -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">2</div>
+      <div class="card-title">Vidéos à assembler — dans l'ordre souhaité</div>
+    </div>
+    <div class="card-body">
+      <div id="videoList"><div class="empty-hint">Aucune vidéo ajoutée</div></div>
+      <label class="add-video-label" for="vidFileInput">＋ &nbsp;Ajouter des vidéos</label>
+      <input type="file" id="vidFileInput" accept="video/*" multiple>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 : Nom -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">3</div>
+      <div class="card-title">Nom du fichier final</div>
+    </div>
+    <div class="card-body">
+      <div class="name-row">
+        <input class="text-in" id="outName" type="text" value="bande_final">
+        <span class="ext">.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="cta" id="ctaBtn">▶ &nbsp;ASSEMBLER LES VIDÉOS</button>
+
+  <div class="card hidden" id="progCard">
+    <div class="card-head"><div class="card-title">Traitement en cours…</div></div>
+    <div class="card-body">
+      <div class="steps" id="stepList"></div>
+      <div class="pbar-wrap"><div class="pbar-fill" id="pbar"></div></div>
+      <div class="logbox" id="logBox"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="dlCard">
+    <div class="card-head"><div class="card-title">✅ Assemblage terminé !</div></div>
+    <div class="card-body">
+      <a class="dl-btn" id="dlBtn" href="#">⬇ &nbsp;Télécharger le fichier final</a>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <strong>BANDE AGENCE CREATOR</strong><br>
+  *by Clem — pour que le newbiz puisse se concentrer sur des tâches à forte valeur ajoutée :)
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+//  🎨  IMAGES PRÉDÉFINIES — MODIFIER ICI
+//
+//  Google Drive :
+//    1. Partager le fichier → "Toute personne avec le lien"
+//    2. Copier l'ID du fichier (dans l'URL entre /d/ et /view)
+//    3. Coller l'ID ci-dessous
+//
+//  Dropbox :
+//    Lien de partage → remplacer ?dl=0 par ?raw=1
+// ═══════════════════════════════════════════════
+const PRESETS = [
+  { label: 'Visuel 1', url: 'https://drive.google.com/uc?export=view&id=REMPLACER_ID_1' },
+  { label: 'Visuel 2', url: 'https://drive.google.com/uc?export=view&id=REMPLACER_ID_2' },
+  { label: 'Visuel 3', url: 'https://drive.google.com/uc?export=view&id=REMPLACER_ID_3' },
+  { label: 'Visuel 4', url: 'https://drive.google.com/uc?export=view&id=REMPLACER_ID_4' },
+  // Ajouter d'autres visuels ici...
+];
+// ═══════════════════════════════════════════════
+
+// ffmpeg v0.11 API
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({
+  // Core non-threadé = pas besoin de SharedArrayBuffer ni de headers spéciaux
+  corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+  log: true,
+  progress: function(p) { setProgress(Math.round(p.ratio * 100)); }
+});
+
+// ── État ──
+let imgSrc  = null;  // { type:'file'|'url', data, thumb, label }
+let videos  = [];
+
+// ── Galerie presets ──
+const gallery = document.getElementById('presetGallery');
+PRESETS.forEach((p, i) => {
+  const el = document.createElement('div');
+  el.className = 'preset-item';
+  el.id = 'preset_' + i;
+  el.innerHTML = '<img src="' + p.url + '" alt="' + p.label + '" onerror="this.style.opacity=\'.15\'"><div class="p-label">' + p.label + '</div><div class="p-check">✓</div>';
+  el.addEventListener('click', function() {
+    document.querySelectorAll('.preset-item').forEach(function(x){ x.classList.remove('active'); });
+    el.classList.add('active');
+    imgSrc = { type: 'url', data: p.url, thumb: p.url, label: p.label };
+    resetImgLabel();
+    showBanner(p.url, p.label);
+  });
+  gallery.appendChild(el);
+});
+
+function resetImgLabel() {
+  var lbl = document.getElementById('imgLabel');
+  lbl.className = 'img-upload-label';
+  lbl.innerHTML = '<div class="upload-icon">🖼️</div><div class="upload-text">Cliquer pour choisir une image</div><div class="upload-sub">JPG ou PNG — affichée 2 sec au début et à la fin</div>';
+}
+
+function showBanner(thumb, label) {
+  document.getElementById('activeBannerThumb').src = thumb;
+  document.getElementById('activeBannerLabel').textContent = label;
+  document.getElementById('activeBanner').classList.add('on');
+}
+
+// ── Upload image ──
+document.getElementById('imgFileInput').addEventListener('change', function() {
+  var f = this.files[0]; if (!f) return;
+  var url = URL.createObjectURL(f);
+  imgSrc = { type: 'file', data: f, thumb: url, label: f.name };
+  document.querySelectorAll('.preset-item').forEach(function(x){ x.classList.remove('active'); });
+  var lbl = document.getElementById('imgLabel');
+  lbl.className = 'img-upload-label filled';
+  lbl.innerHTML = '<img class="img-thumb-prev" src="' + url + '"><div><div style="font-size:14px;font-weight:500">' + f.name + '</div><div style="font-size:11px;color:var(--muted);margin-top:3px">' + (f.size/1024).toFixed(0) + ' Ko — cliquer pour changer</div></div>';
+  showBanner(url, f.name);
+});
+
+// ── Upload vidéos ──
+document.getElementById('vidFileInput').addEventListener('change', async function() {
+  var files = Array.from(this.files); if (!files.length) return;
+  for (var i=0; i<files.length; i++) {
+    var f = files[i];
+    var dur   = await getDuration(f);
+    var thumb = await getThumb(f);
+    videos.push({ file: f, name: f.name, duration: dur, thumb: thumb });
+  }
+  this.value = '';
+  renderVideos();
+});
+
+function getDuration(file) {
+  return new Promise(function(res) {
+    var v = document.createElement('video'), url = URL.createObjectURL(file);
+    v.onloadedmetadata = function() { URL.revokeObjectURL(url); res(v.duration); };
+    v.onerror = function() { URL.revokeObjectURL(url); res(0); };
+    v.src = url;
+  });
+}
+
+function getThumb(file) {
+  return new Promise(function(res) {
+    var v = document.createElement('video'), c = document.createElement('canvas'), url = URL.createObjectURL(file);
+    var done = function(r) { URL.revokeObjectURL(url); res(r); };
+    var t = setTimeout(function(){ done(null); }, 6000);
+    v.onloadedmetadata = function() { v.currentTime = Math.min(.5, v.duration * .1); };
+    v.onseeked = function() {
+      clearTimeout(t); c.width = 64; c.height = 36;
+      try { c.getContext('2d').drawImage(v,0,0,64,36); done(c.toDataURL('image/jpeg',.7)); } catch(e){ done(null); }
+    };
+    v.onerror = function(){ clearTimeout(t); done(null); };
+    v.muted = true; v.preload = 'metadata'; v.src = url;
+  });
+}
+
+function fmtDur(s) {
+  if (!s || isNaN(s)) return '--:--';
+  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+}
+
+function renderVideos() {
+  var list = document.getElementById('videoList');
+  if (!videos.length) { list.innerHTML = '<div class="empty-hint">Aucune vidéo ajoutée</div>'; return; }
+  list.innerHTML = '';
+  videos.forEach(function(v, i) {
+    var el = document.createElement('div');
+    el.className = 'video-item';
+    el.innerHTML =
+      '<div class="v-thumb">' + (v.thumb ? '<img src="'+v.thumb+'">' : '<div class="v-icon">🎬</div>') + '</div>' +
+      '<div class="v-info"><div class="v-name" title="'+v.name+'">'+v.name+'</div><div class="v-meta">'+fmtDur(v.duration)+' · '+(v.file.size/1024/1024).toFixed(1)+' Mo</div></div>' +
+      '<div class="v-actions">' +
+      '<button class="ibtn" onclick="moveVid('+i+',-1)" '+(i===0?'disabled':'')+'>↑</button>' +
+      '<button class="ibtn" onclick="moveVid('+i+',1)" '+(i===videos.length-1?'disabled':'')+'>↓</button>' +
+      '<button class="ibtn del" onclick="removeVid('+i+')">✕</button>' +
+      '</div>';
+    list.appendChild(el);
+  });
+}
+
+window.moveVid = function(i, d) {
+  var j=i+d; if(j<0||j>=videos.length) return;
+  var tmp=videos[i]; videos[i]=videos[j]; videos[j]=tmp;
+  renderVideos();
+};
+window.removeVid = function(i) { videos.splice(i,1); renderVideos(); };
+
+// ── Progress ──
+var stepCount = 0;
+function initSteps(names) {
+  stepCount = names.length;
+  document.getElementById('stepList').innerHTML = names.map(function(n,i){
+    return '<div class="stp" id="s'+i+'"><div class="stp-dot">○</div><span>'+n+'</span></div>';
+  }).join('');
+  setProgress(0);
+}
+function setStep(i) {
+  for (var j=0; j<stepCount; j++) {
+    var el = document.getElementById('s'+j); if(!el) continue;
+    if (j<i)       { el.className='stp done';   el.querySelector('.stp-dot').textContent='✓'; }
+    else if (j===i){ el.className='stp active'; el.querySelector('.stp-dot').textContent='●'; }
+    else           { el.className='stp';         el.querySelector('.stp-dot').textContent='○'; }
+  }
+}
+function allDone() {
+  for (var j=0; j<stepCount; j++) {
+    var el = document.getElementById('s'+j);
+    if(el){ el.className='stp done'; el.querySelector('.stp-dot').textContent='✓'; }
+  }
+}
+function setProgress(p) { document.getElementById('pbar').style.width = p+'%'; }
+function log(msg) {
+  var b = document.getElementById('logBox');
+  b.textContent += msg+'\n'; b.scrollTop = b.scrollHeight;
+}
+
+// ── Assemblage ──
+document.getElementById('ctaBtn').addEventListener('click', async function() {
+  if (!imgSrc)        { alert('Choisis une image de début / fin !'); return; }
+  if (!videos.length) { alert('Ajoute au moins une vidéo !'); return; }
+
+  var outName = (document.getElementById('outName').value.trim() || 'bande_final') + '.mp4';
+  var btn = document.getElementById('ctaBtn');
+  btn.disabled = true;
+
+  // Chargement ffmpeg si nécessaire
+  if (!ffmpeg.isLoaded()) {
+    var ov = document.getElementById('loadOv');
+    ov.classList.add('on');
+    try {
+      await ffmpeg.load();
+    } catch(e) {
+      ov.classList.remove('on');
+      alert('Impossible de charger le moteur vidéo.\nVérifie ta connexion et réessaie.\n\n' + e.message);
+      btn.disabled = false;
+      return;
+    }
+    ov.classList.remove('on');
+  }
+
+  // Log ffmpeg
+  ffmpeg.setLogger(function(p) { if(p.message) log(p.message); });
+
+  document.getElementById('progCard').classList.remove('hidden');
+  document.getElementById('dlCard').classList.add('hidden');
+  document.getElementById('logBox').textContent = '';
+
+  var stepNames = ['Préparation', '🖼️ Image de début'];
+  videos.forEach(function(v,i){ stepNames.push('🎬 Vidéo '+(i+1)+'/'+videos.length+' : '+v.name); });
+  stepNames.push('🖼️ Image de fin', '🔗 Assemblage final');
+  initSteps(stepNames);
+
+  try {
+    // Résolution de référence
+    setStep(0);
+    var info = await new Promise(function(res) {
+      var v = document.createElement('video'), url = URL.createObjectURL(videos[0].file);
+      v.onloadedmetadata = function(){ URL.revokeObjectURL(url); res({w: v.videoWidth||1280, h: v.videoHeight||720}); };
+      v.src = url;
+    });
+    var W=info.w, H=info.h, FPS=25;
+    var scaleVF = 'scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':(ow-iw)/2:(oh-ih)/2';
+    log('Résolution : '+W+'×'+H+' @ '+FPS+'fps');
+    setProgress(5);
+
+    // Écriture image
+    if (imgSrc.type === 'file') {
+      ffmpeg.FS('writeFile', 'img_src', await fetchFile(imgSrc.data));
+    } else {
+      ffmpeg.FS('writeFile', 'img_src', await fetchFile(imgSrc.data));
+    }
+
+    // Clip début
+    setStep(1);
+    log('Clip image début…');
+    await ffmpeg.run('-loop','1','-i','img_src','-f','lavfi','-i','anullsrc=r=44100:cl=stereo','-t','2','-vf',scaleVF,'-r',String(FPS),'-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p','debut.mp4');
+    setProgress(10);
+
+    var segments = ['debut.mp4'];
+
+    for (var i=0; i<videos.length; i++) {
+      setStep(2+i);
+      var v = videos[i];
+      var ext = v.name.split('.').pop().toLowerCase();
+      var inp = 'in_'+i+'.'+ext, seg = 'seg_'+i+'.mp4';
+      log('Encodage '+(i+1)+'/'+videos.length+' : '+v.name);
+      ffmpeg.FS('writeFile', inp, await fetchFile(v.file));
+      await ffmpeg.run('-i',inp,'-vf',scaleVF,'-r',String(FPS),'-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p',seg);
+      ffmpeg.FS('unlink', inp);
+      segments.push(seg);
+
+      if (i < videos.length-1) {
+        var noir = 'noir_'+i+'.mp4';
+        log('Écran noir 1s…');
+        await ffmpeg.run('-f','lavfi','-i','color=c=black:s='+W+'x'+H+':r='+FPS+':d=1','-f','lavfi','-i','anullsrc=r=44100:cl=stereo','-t','1','-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p',noir);
+        segments.push(noir);
+      }
+      setProgress(10 + (i+1)/videos.length*60);
+    }
+
+    // Clip fin
+    setStep(2+videos.length);
+    log('Clip image fin…');
+    await ffmpeg.run('-loop','1','-i','img_src','-f','lavfi','-i','anullsrc=r=44100:cl=stereo','-t','2','-vf',scaleVF,'-r',String(FPS),'-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p','fin.mp4');
+    segments.push('fin.mp4');
+    setProgress(75);
+
+    // Assemblage final (concat filter)
+    setStep(2+videos.length+1);
+    log('Assemblage final…');
+    var n = segments.length;
+    var filterStr = segments.map(function(_,i){ return '['+i+':v]['+i+':a]'; }).join('') + 'concat=n='+n+':v=1:a=1[v][a]';
+    var runArgs = [];
+    segments.forEach(function(s){ runArgs.push('-i', s); });
+    runArgs.push('-filter_complex', filterStr, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-c:a', 'aac', '-pix_fmt', 'yuv420p', 'output.mp4');
+    await ffmpeg.run.apply(ffmpeg, runArgs);
+
+    setProgress(95);
+    var data = ffmpeg.FS('readFile', 'output.mp4');
+    var url  = URL.createObjectURL(new Blob([data.buffer], { type:'video/mp4' }));
+
+    // Nettoyage
+    segments.forEach(function(s){ try{ ffmpeg.FS('unlink',s); }catch(e){} });
+    try{ ffmpeg.FS('unlink','img_src'); }catch(e){}
+    try{ ffmpeg.FS('unlink','output.mp4'); }catch(e){}
+
+    setProgress(100);
+    allDone();
+
+    var dlBtn = document.getElementById('dlBtn');
+    dlBtn.href = url; dlBtn.download = outName;
+    dlBtn.innerHTML = '⬇ &nbsp;Télécharger ' + outName;
+    document.getElementById('dlCard').classList.remove('hidden');
+    log('\n✅ Terminé ! Clique sur le bouton vert pour télécharger.');
+
+  } catch(e) {
+    log('❌ ERREUR : ' + (e.message || e));
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
