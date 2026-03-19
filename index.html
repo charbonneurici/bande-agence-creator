@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BANDE AGENCE CREATOR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #09090f;
+      --surface:  #111120;
+      --surface2: #18182a;
+      --border:   #232336;
+      --accent:   #f0a500;
+      --text:     #e6e6f5;
+      --muted:    #55557a;
+      --green:    #22c55e;
+      --red:      #ef4444;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: .5;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-wrap { display: flex; align-items: baseline; gap: 10px; }
+    .logo {
+      font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px;
+      background: linear-gradient(90deg, #f0a500, #ffcd3c);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tagline { font-size: 11px; color: var(--muted); margin-top: 3px; letter-spacing: .3px; }
+
+    .film-strip { display: flex; gap: 5px; align-items: center; }
+    .film-hole  { width: 9px; height: 13px; border-radius: 2px; background: var(--border); }
+
+    /* ── Layout ── */
+    main { max-width: 800px; margin: 0 auto; padding: 36px 20px; display: flex; flex-direction: column; gap: 18px; flex: 1; }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .card-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .step-badge { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #000; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; }
+    .card-body  { padding: 18px 20px; }
+
+    /* ── Image selector ── */
+    .img-section-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .7px;
+      color: var(--muted); margin-bottom: 10px; font-weight: 600;
+    }
+
+    /* Galerie d'images prédéfinies */
+    .preset-gallery {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+    .preset-item {
+      position: relative; cursor: pointer; border-radius: 8px; overflow: hidden;
+      border: 2px solid var(--border); aspect-ratio: 16/9;
+      transition: border-color .2s, transform .15s;
+    }
+    .preset-item:hover  { border-color: var(--muted); transform: translateY(-2px); }
+    .preset-item.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,165,0,.2); }
+    .preset-item img    { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .preset-item .p-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,.75));
+      padding: 12px 6px 5px; font-size: 10px; text-align: center;
+      color: #fff; font-weight: 500;
+    }
+    .preset-item .check {
+      position: absolute; top: 5px; right: 5px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); color: #000; font-size: 10px; font-weight: 700;
+      display: none; align-items: center; justify-content: center;
+    }
+    .preset-item.active .check { display: flex; }
+
+    /* Séparateur */
+    .or-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 14px 0; color: var(--muted); font-size: 11px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* Upload custom */
+    .image-drop {
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 18px 20px; text-align: center; cursor: pointer;
+      transition: .2s;
+    }
+    .image-drop:hover, .image-drop.over { border-color: var(--accent); background: rgba(240,165,0,.04); }
+    .image-drop.filled {
+      border-style: solid; border-color: var(--accent);
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 18px; text-align: left;
+    }
+    .image-drop.filled .drop-hint { display: none; }
+    .drop-icon { font-size: 24px; margin-bottom: 6px; }
+    .drop-text { font-size: 13px; color: var(--muted); }
+    .drop-sub  { font-size: 11px; color: var(--muted); margin-top: 3px; opacity: .7; }
+    .img-thumb { width: 80px; height: 46px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+    .img-name  { font-size: 14px; font-weight: 500; }
+    .img-meta  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Indicateur image active */
+    .active-img-banner {
+      display: none; align-items: center; gap: 10px;
+      background: rgba(240,165,0,.08); border: 1px solid rgba(240,165,0,.2);
+      border-radius: 8px; padding: 8px 12px; margin-top: 12px;
+      font-size: 12px; color: rgba(240,165,0,.9);
+    }
+    .active-img-banner.on { display: flex; }
+    .active-img-banner img { width: 40px; height: 23px; object-fit: cover; border-radius: 4px; }
+
+    /* ── Video list ── */
+    #videoList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .empty-hint { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 0; }
+
+    .video-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; display: flex; align-items: center; gap: 12px; transition: border-color .15s; }
+    .video-item:hover { border-color: var(--muted); }
+    .v-thumb { width: 64px; height: 36px; border-radius: 5px; background: #06060f; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .v-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .v-thumb-icon { font-size: 18px; opacity: .35; }
+    .v-info { flex: 1; min-width: 0; }
+    .v-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .v-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .v-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .ibtn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: .15s; }
+    .ibtn:hover:not(:disabled) { background: var(--surface); color: var(--text); border-color: var(--muted); }
+    .ibtn:disabled { opacity: .3; cursor: default; }
+    .ibtn.del:hover:not(:disabled) { background: rgba(239,68,68,.12); color: var(--red); border-color: var(--red); }
+
+    .add-btn { width: 100%; padding: 10px; border-radius: 8px; border: 1px dashed var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans'; font-size: 13px; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(240,165,0,.04); }
+
+    /* ── Output name ── */
+    .name-row { display: flex; align-items: center; gap: 10px; }
+    .text-in { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'DM Sans'; font-size: 14px; transition: border-color .2s; }
+    .text-in:focus { outline: none; border-color: var(--accent); }
+    .ext { color: var(--muted); font-family: 'JetBrains Mono'; font-size: 13px; }
+
+    /* ── CTA ── */
+    .cta { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(135deg, #f0a500, #ffcd3c); color: #000; font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 3px; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .cta:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(240,165,0,.32); }
+    .cta:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── Progress ── */
+    .prog-card { display: none; }
+    .prog-card.on { display: block; }
+    .steps { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+    .stp { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); transition: color .3s; }
+    .stp.active { color: var(--text); }
+    .stp.done   { color: var(--green); }
+    .stp-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; transition: .3s; }
+    .stp.active .stp-dot { border-color: var(--accent); animation: pls 1s infinite; }
+    .stp.done   .stp-dot { border-color: var(--green); background: rgba(34,197,94,.1); }
+    @keyframes pls { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .pbar-wrap { background: var(--surface2); border-radius: 99px; height: 5px; overflow: hidden; margin-bottom: 14px; }
+    .pbar-fill  { height: 100%; background: linear-gradient(90deg, #f0a500, #ffcd3c); border-radius: 99px; transition: width .5s ease; width: 0%; }
+    .log { background: #04040c; border-radius: 8px; padding: 10px 12px; font-family: 'JetBrains Mono'; font-size: 10.5px; color: #50e878; height: 110px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+
+    /* ── Download ── */
+    .dl-card { display: none; }
+    .dl-card.on { display: block; }
+    .dl-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border-radius: 10px; border: 2px solid var(--green); background: rgba(34,197,94,.07); color: var(--green); font-family: 'DM Sans'; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; transition: .2s; }
+    .dl-btn:hover { background: rgba(34,197,94,.14); transform: translateY(-1px); }
+
+    /* ── Info banner ── */
+    .banner { background: rgba(240,165,0,.06); border: 1px solid rgba(240,165,0,.15); border-radius: 10px; padding: 11px 15px; font-size: 12px; color: rgba(240,165,0,.85); line-height: 1.7; }
+
+    /* ── Loading overlay ── */
+    #loadOv { display: none; position: fixed; inset: 0; background: rgba(9,9,15,.93); z-index: 200; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    #loadOv.on { display: flex; }
+    .spin { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: rot .75s linear infinite; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+    .load-txt { font-size: 14px; }
+    .load-sub { font-size: 11px; color: var(--muted); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center; padding: 22px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+      font-style: italic; line-height: 1.8;
+    }
+    footer strong { color: rgba(240,165,0,.7); font-style: normal; }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadOv">
+  <div class="spin"></div>
+  <div class="load-txt">Chargement du moteur vidéo…</div>
+  <div class="load-sub">~30 Mo à télécharger, une seule fois par session</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div>
+    <div class="logo-wrap">
+      <div class="logo">BANDE AGENCE CREATOR</div>
+    </div>
+    <div class="tagline">Assemblage de vidéos — traitement 100 % local, dans votre navigateur</div>
+  </div>
+  <div class="film-strip">
+    <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+    <div class="film-hole"></div><div class="film-hole"></div><div class="film-hole"></div>
+    <div class="film-hole"></div><div class="film-hole"></div>
+  </div>
+</header>
+
+<main>
+
+  <div class="banner">
+    ⚡ Vos vidéos ne quittent jamais votre ordinateur — tout est traité localement grâce à WebAssembly.
+    Fonctionne sur Chrome, Edge et Firefox. Conseillé pour des vidéos de moins de 500 Mo au total.
+  </div>
+
+  <!-- 1. Image -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">1</div>
+      <div class="card-title">Image de début et de fin</div>
+    </div>
+    <div class="card-body">
+
+      <!-- Galerie prédéfinie -->
+      <div class="img-section-label">Choisir parmi les visuels de l'agence</div>
+      <div class="preset-gallery" id="presetGallery">
+        <!-- Les items sont générés par JS depuis PRESET_IMAGES -->
+      </div>
+
+      <!-- Séparateur -->
+      <div class="or-divider">ou uploader votre propre image</div>
+
+      <!-- Upload custom -->
+      <div class="image-drop drop-hint" id="imgDrop" onclick="document.getElementById('imgInput').click()">
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-text">Cliquer pour choisir une image</div>
+        <div class="drop-sub">JPG ou PNG — affichée 2 secondes au début et à la fin</div>
+      </div>
+      <input type="file" id="imgInput" accept="image/*">
+
+      <!-- Indicateur image sélectionnée -->
+      <div class="active-img-banner" id="activeImgBanner">
+        <img id="activeImgThumb" src="" alt="">
+        <span id="activeImgLabel">—</span>
+        <span style="margin-left:auto;opacity:.5;font-size:10px;">image sélectionnée ✓</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 2. Vidéos -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">2</div>
+      <div class="card-title">Vidéos à assembler — dans l'ordre souhaité</div>
+    </div>
+    <div class="card-body">
+      <div id="videoList">
+        <div class="empty-hint">Aucune vidéo ajoutée pour l'instant</div>
+      </div>
+      <button class="add-btn" onclick="document.getElementById('vidInput').click()">
+        ＋ &nbsp;Ajouter des vidéos
+      </button>
+      <input type="file" id="vidInput" accept="video/*" multiple>
+    </div>
+  </div>
+
+  <!-- 3. Nom -->
+  <div class="card">
+    <div class="card-head">
+      <div class="step-badge">3</div>
+      <div class="card-title">Nom du fichier final</div>
+    </div>
+    <div class="card-body">
+      <div class="name-row">
+        <input class="text-in" id="outName" type="text" value="bande_final" placeholder="bande_final">
+        <span class="ext">.mp4</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button class="cta" id="ctaBtn" onclick="lancer()">▶ &nbsp;ASSEMBLER LES VIDÉOS</button>
+
+  <!-- Progress -->
+  <div class="card prog-card" id="progCard">
+    <div class="card-head"><div class="card-title">Traitement en cours…</div></div>
+    <div class="card-body">
+      <div class="steps" id="stepList"></div>
+      <div class="pbar-wrap"><div class="pbar-fill" id="pbar"></div></div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- Download -->
+  <div class="card dl-card" id="dlCard">
+    <div class="card-head"><div class="card-title">✅ Assemblage terminé !</div></div>
+    <div class="card-body">
+      <a class="dl-btn" id="dlBtn" href="#" download="bande_final.mp4">
+        ⬇ &nbsp;Télécharger le fichier final
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer>
+  <strong>BANDE AGENCE CREATOR</strong><br>
+  *by Clem — pour que le newbiz puisse se concentrer sur des tâches à forte valeur ajoutée&nbsp;:)
+</footer>
+
+<script type="module">
+import { FFmpeg }              from 'https://esm.sh/@ffmpeg/ffmpeg@0.12.6';
+import { fetchFile, toBlobURL } from 'https://esm.sh/@ffmpeg/util@0.12.1';
+
+// ═══════════════════════════════════════════════════════
+//  🎨  IMAGES PRÉDÉFINIES — MODIFIER ICI
+//  Pour Google Drive  : ouvrir le fichier → Partager → "Toute personne avec le lien"
+//                       puis remplacer l'URL par :
+//                       https://drive.google.com/uc?export=view&id=VOTRE_ID_ICI
+//  Pour Dropbox       : copiez le lien de partage et remplacez ?dl=0 par ?raw=1
+// ═══════════════════════════════════════════════════════
+const PRESET_IMAGES = [
+  {
+    label: 'Visuel 1',
+    url:   'https://drive.google.com/uc?export=view&id=REMPLACER_PAR_ID_1',
+    // Exemple Dropbox : 'https://www.dropbox.com/s/xxx/visuel1.jpg?raw=1'
+  },
+  {
+    label: 'Visuel 2',
+    url:   'https://drive.google.com/uc?export=view&id=REMPLACER_PAR_ID_2',
+  },
+  {
+    label: 'Visuel 3',
+    url:   'https://drive.google.com/uc?export=view&id=REMPLACER_PAR_ID_3',
+  },
+  {
+    label: 'Visuel 4',
+    url:   'https://drive.google.com/uc?export=view&id=REMPLACER_PAR_ID_4',
+  },
+  // ➕ Ajouter d'autres visuels ici en copiant un bloc { label, url } ci-dessus
+];
+// ═══════════════════════════════════════════════════════
+
+// ── État global ──
+let ffmpeg     = null;
+let imageFile  = null;   // File object si upload custom
+let imageUrl   = null;   // URL si preset sélectionné
+let videos     = [];
+
+// ── Render galerie presets ──
+(function buildGallery() {
+  const gallery = document.getElementById('presetGallery');
+  PRESET_IMAGES.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    item.id = `preset_${i}`;
+    item.innerHTML = `
+      <img src="${p.url}" alt="${p.label}" onerror="this.parentElement.style.background='#1a1a2e';this.style.display='none'">
+      <div class="p-label">${p.label}</div>
+      <div class="check">✓</div>`;
+    item.onclick = () => selectPreset(i);
+    gallery.appendChild(item);
+  });
+})();
+
+function selectPreset(i) {
+  // Désélectionner tous
+  document.querySelectorAll('.preset-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`preset_${i}`).classList.add('active');
+
+  // Réinitialiser l'upload custom
+  imageFile = null;
+  const drop = document.getElementById('imgDrop');
+  drop.className = 'image-drop drop-hint';
+  drop.innerHTML = `
+    <div class="drop-icon">🖼️</div>
+    <div class="drop-text">Cliquer pour choisir une image</div>
+    <div class="drop-sub">JPG ou PNG — affichée 2 secondes au début et à la fin</div>`;
+  drop.onclick = () => document.getElementById('imgInput').click();
+
+  // Mémoriser l'URL preset
+  imageUrl = PRESET_IMAGES[i].url;
+
+  // Bannière
+  const banner = document.getElementById('activeImgBanner');
+  banner.classList.add('on');
+  document.getElementById('activeImgThumb').src = imageUrl;
+  document.getElementById('activeImgLabel').textContent = PRESET_IMAGES[i].label;
+}
+
+// ── Image upload custom ──
+document.getElementById('imgInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  setCustomImage(f);
+});
+
+const imgDrop = document.getElementById('imgDrop');
+imgDrop.addEventListener('dragover',  e => { e.preventDefault(); imgDrop.classList.add('over'); });
+imgDrop.addEventListener('dragleave', () => imgDrop.classList.remove('over'));
+imgDrop.addEventListener('drop', e => {
+  e.preventDefault(); imgDrop.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) setCustomImage(f);
+});
+
+function setCustomImage(f) {
+  imageFile = f;
+  imageUrl  = null;
+  // Désélectionner les presets
+  document.querySelectorAll('.preset-item').forEach(el => el.classList.remove('active'));
+
+  const url  = URL.createObjectURL(f);
+  const zone = document.getElementById('imgDrop');
+  zone.className = 'image-drop filled';
+  zone.innerHTML = `
+    <img class="img-thumb" src="${url}" alt="">
+    <div>
+      <div class="img-name">${f.name}</div>
+      <div class="img-meta">${(f.size/1024).toFixed(0)} Ko — cliquer pour changer</div>
+    </div>`;
+  zone.onclick = () => document.getElementById('imgInput').click();
+
+  // Bannière
+  const banner = document.getElementById('activeImgBanner');
+  banner.classList.add('on');
+  document.getElementById('activeImgThumb').src = url;
+  document.getElementById('activeImgLabel').textContent = f.name;
+}
+
+// ───────────────────────────────────────
+// Init ffmpeg.wasm
+// ───────────────────────────────────────
+async function initFFmpeg() {
+  const ov = document.getElementById('loadOv');
+  ov.classList.add('on');
+  try {
+    ffmpeg = new FFmpeg();
+    ffmpeg.on('log', ({ message }) => appendLog(message));
+    const base = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd';
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,   'text/javascript'),
+      wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+  } finally {
+    ov.classList.remove('on');
+  }
+}
+
+// ───────────────────────────────────────
+// Vidéos
+// ───────────────────────────────────────
+document.getElementById('vidInput').addEventListener('change', async e => {
+  for (const f of Array.from(e.target.files)) {
+    const [dur, thumb] = await Promise.all([getVideoDuration(f), getVideoThumb(f)]);
+    videos.push({ file: f, name: f.name, duration: dur, thumb });
+  }
+  renderList();
+  e.target.value = '';
+});
+
+async function getVideoDuration(file) {
+  return new Promise(resolve => {
+    const v = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+    v.src = url;
+  });
+}
+
+async function getVideoThumb(file) {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const url = URL.createObjectURL(file);
+    const done = r => { URL.revokeObjectURL(url); resolve(r); };
+    const timer = setTimeout(() => done(null), 6000);
+    video.onloadedmetadata = () => { video.currentTime = Math.min(.5, video.duration * .1); };
+    video.onseeked = () => {
+      clearTimeout(timer);
+      canvas.width = 64; canvas.height = 36;
+      try { canvas.getContext('2d').drawImage(video, 0, 0, 64, 36); done(canvas.toDataURL('image/jpeg', .7)); }
+      catch { done(null); }
+    };
+    video.onerror = () => { clearTimeout(timer); done(null); };
+    video.muted = true; video.preload = 'metadata'; video.src = url;
+  });
+}
+
+function fmt(s) {
+  if (!s || isNaN(s)) return '--:--';
+  return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+}
+
+function renderList() {
+  const list = document.getElementById('videoList');
+  list.innerHTML = '';
+  if (videos.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Aucune vidéo ajoutée pour l\'instant</div>';
+    return;
+  }
+  videos.forEach((v, i) => {
+    const item = document.createElement('div');
+    item.className = 'video-item';
+    item.innerHTML = `
+      <div class="v-thumb">
+        ${v.thumb ? `<img src="${v.thumb}" alt="">` : '<div class="v-thumb-icon">🎬</div>'}
+      </div>
+      <div class="v-info">
+        <div class="v-name" title="${v.name}">${v.name}</div>
+        <div class="v-meta">${fmt(v.duration)} · ${(v.file.size/1024/1024).toFixed(1)} Mo</div>
+      </div>
+      <div class="v-actions">
+        <button class="ibtn" title="Monter"    onclick="mv(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="ibtn" title="Descendre" onclick="mv(${i}, 1)" ${i===videos.length-1?'disabled':''}>↓</button>
+        <button class="ibtn del" title="Supprimer" onclick="rm(${i})">✕</button>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+window.mv = (i, d) => { const j=i+d; if(j<0||j>=videos.length) return; [videos[i],videos[j]]=[videos[j],videos[i]]; renderList(); };
+window.rm = (i) => { videos.splice(i,1); renderList(); };
+
+// ───────────────────────────────────────
+// Progress UI
+// ───────────────────────────────────────
+let stepNames = [];
+
+function initSteps(names) {
+  stepNames = names;
+  document.getElementById('stepList').innerHTML = names.map((n,i) => `
+    <div class="stp" id="stp${i}">
+      <div class="stp-dot">○</div><span>${n}</span>
+    </div>`).join('');
+  setProgress(0);
+}
+function activateStep(i) {
+  stepNames.forEach((_,j) => {
+    const el = document.getElementById(`stp${j}`); if(!el) return;
+    if(j<i)       { el.className='stp done';   el.querySelector('.stp-dot').textContent='✓'; }
+    else if(j===i){ el.className='stp active'; el.querySelector('.stp-dot').textContent='●'; }
+    else          { el.className='stp';         el.querySelector('.stp-dot').textContent='○'; }
+  });
+}
+function allDone() {
+  stepNames.forEach((_,j) => {
+    const el = document.getElementById(`stp${j}`);
+    if(el){ el.className='stp done'; el.querySelector('.stp-dot').textContent='✓'; }
+  });
+}
+function setProgress(p) { document.getElementById('pbar').style.width = p+'%'; }
+function appendLog(msg) {
+  const b = document.getElementById('logBox');
+  b.textContent += msg+'\n'; b.scrollTop = b.scrollHeight;
+}
+
+// ───────────────────────────────────────
+// Assemblage
+// ───────────────────────────────────────
+window.lancer = async function () {
+  if (!imageFile && !imageUrl) { alert('Choisis une image de début / fin !'); return; }
+  if (videos.length === 0)     { alert('Ajoute au moins une vidéo !'); return; }
+
+  const outName = (document.getElementById('outName').value.trim() || 'bande_final') + '.mp4';
+
+  if (!ffmpeg) await initFFmpeg();
+
+  document.getElementById('progCard').classList.add('on');
+  document.getElementById('dlCard').classList.remove('on');
+  document.getElementById('logBox').textContent = '';
+  document.getElementById('ctaBtn').disabled = true;
+
+  const names = [
+    'Préparation',
+    '🖼️  Image de début',
+    ...videos.map((v,i) => `🎬  Vidéo ${i+1}/${videos.length} : ${v.name}`),
+    '🖼️  Image de fin',
+    '🔗  Assemblage final',
+  ];
+  initSteps(names);
+
+  try {
+    // ── Résolution de référence ──
+    activateStep(0);
+    const info = await new Promise(resolve => {
+      const v = document.createElement('video');
+      const url = URL.createObjectURL(videos[0].file);
+      v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve({ w: v.videoWidth, h: v.videoHeight }); };
+      v.src = url;
+    });
+    const W = info.w || 1280, H = info.h || 720, FPS = 25;
+    const scaleVF = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2`;
+    appendLog(`Résolution : ${W}×${H} @ ${FPS}fps`);
+    setProgress(5);
+
+    // Écriture de l'image (preset ou upload)
+    if (imageFile) {
+      await ffmpeg.writeFile('img_src', await fetchFile(imageFile));
+    } else {
+      await ffmpeg.writeFile('img_src', await fetchFile(imageUrl));
+    }
+
+    // ── Clip de début ──
+    activateStep(1);
+    appendLog('Création clip image début…');
+    await ffmpeg.exec([
+      '-loop','1','-i','img_src',
+      '-f','lavfi','-i','anullsrc=r=44100:cl=stereo',
+      '-t','2','-vf',scaleVF,'-r',String(FPS),
+      '-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p','debut.mp4'
+    ]);
+    setProgress(10);
+
+    const segments = ['debut.mp4'];
+
+    // ── Vidéos ──
+    for (let i = 0; i < videos.length; i++) {
+      activateStep(2+i);
+      const v   = videos[i];
+      const ext = v.name.split('.').pop().toLowerCase();
+      const inp = `inp_${i}.${ext}`;
+      const seg = `seg_${i}.mp4`;
+      appendLog(`Encodage vidéo ${i+1}/${videos.length} : ${v.name}`);
+      await ffmpeg.writeFile(inp, await fetchFile(v.file));
+      await ffmpeg.exec([
+        '-i',inp,'-vf',scaleVF,'-r',String(FPS),
+        '-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p',seg
+      ]);
+      await ffmpeg.deleteFile(inp);
+      segments.push(seg);
+
+      if (i < videos.length - 1) {
+        const noir = `noir_${i}.mp4`;
+        appendLog('Écran noir 1 s…');
+        await ffmpeg.exec([
+          '-f','lavfi','-i',`color=c=black:s=${W}x${H}:r=${FPS}:d=1`,
+          '-f','lavfi','-i','anullsrc=r=44100:cl=stereo',
+          '-t','1','-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p',noir
+        ]);
+        segments.push(noir);
+      }
+      setProgress(10 + (i+1)/videos.length*60);
+    }
+
+    // ── Clip de fin ──
+    activateStep(2+videos.length);
+    appendLog('Création clip image fin…');
+    await ffmpeg.exec([
+      '-loop','1','-i','img_src',
+      '-f','lavfi','-i','anullsrc=r=44100:cl=stereo',
+      '-t','2','-vf',scaleVF,'-r',String(FPS),
+      '-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p','fin.mp4'
+    ]);
+    segments.push('fin.mp4');
+    setProgress(75);
+
+    // ── Assemblage final (concat filter) ──
+    activateStep(2+videos.length+1);
+    appendLog('Assemblage final…');
+    const n         = segments.length;
+    const inputArgs = segments.flatMap(s => ['-i', s]);
+    const filterStr = segments.map((_,i) => `[${i}:v][${i}:a]`).join('')
+                    + `concat=n=${n}:v=1:a=1[v][a]`;
+    await ffmpeg.exec([
+      ...inputArgs,
+      '-filter_complex', filterStr,
+      '-map','[v]','-map','[a]',
+      '-c:v','libx264','-c:a','aac','-pix_fmt','yuv420p',
+      'output.mp4'
+    ]);
+
+    setProgress(95);
+    const data = await ffmpeg.readFile('output.mp4');
+    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const url  = URL.createObjectURL(blob);
+
+    for (const s of segments) { try { await ffmpeg.deleteFile(s); } catch {} }
+    try { await ffmpeg.deleteFile('img_src');   } catch {}
+    try { await ffmpeg.deleteFile('output.mp4');} catch {}
+
+    setProgress(100);
+    allDone();
+
+    const btn = document.getElementById('dlBtn');
+    btn.href = url; btn.download = outName;
+    btn.innerHTML = `⬇ &nbsp;Télécharger ${outName}`;
+    document.getElementById('dlCard').classList.add('on');
+    appendLog(`\n✅ Terminé ! Clique sur le bouton vert pour télécharger.`);
+
+  } catch(err) {
+    appendLog('❌ ERREUR : ' + (err.message || err));
+    console.error(err);
+  } finally {
+    document.getElementById('ctaBtn').disabled = false;
+  }
+};
+
+initFFmpeg().catch(console.error);
+</script>
+</body>
+</html>
